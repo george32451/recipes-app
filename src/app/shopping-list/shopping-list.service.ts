@@ -1,4 +1,6 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
+
+import { Subject } from 'rxjs';
 
 import { Ingredient } from 'app/common/models/ingredient.model';
 
@@ -6,7 +8,8 @@ import { Ingredient } from 'app/common/models/ingredient.model';
   providedIn: 'root'
 })
 export class ShoppingListService {
-  ingredientsChanged = new EventEmitter<Ingredient[]>();
+  ingredientsChanged$ = new Subject<Ingredient[]>();
+  startedEditing$ = new Subject<number>();
   private ingredients: Ingredient[] = [
     new Ingredient('Apple', 5),
     new Ingredient('Tomato', 10)
@@ -18,6 +21,10 @@ export class ShoppingListService {
     return this.ingredients.slice();
   }
 
+  getIngredient(index): Ingredient {
+    return this.ingredients[index];
+  }
+
   addIngredient(ingredient: Ingredient, publishChanges = true) {
     const index = this.ingredients.findIndex(ing => ing.name === ingredient.name);
     if (index === -1) {
@@ -26,13 +33,13 @@ export class ShoppingListService {
       this.ingredients[index].amount += ingredient.amount;
     }
     if (publishChanges) {
-      this.ingredientsChanged.emit(this.ingredients.slice());
+      this.ingredientsChanged$.next(this.ingredients.slice());
     }
   }
 
   addIngredients(ingredients: Ingredient[]) {
     ingredients.forEach(ing => this.addIngredient(ing, false));
-    this.ingredientsChanged.emit(this.ingredients.slice());
+    this.ingredientsChanged$.next(this.ingredients.slice());
   }
 
   deleteIngredient(ingredientName: string) {
@@ -45,6 +52,6 @@ export class ShoppingListService {
     } else {
       this.ingredients = this.ingredients.filter(ing => ing.name !== ingredientName);
     }
-    this.ingredientsChanged.emit(this.ingredients.slice());
+    this.ingredientsChanged$.next(this.ingredients.slice());
   }
 }
