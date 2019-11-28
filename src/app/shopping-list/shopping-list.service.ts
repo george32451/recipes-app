@@ -26,7 +26,7 @@ export class ShoppingListService {
   }
 
   addIngredient(ingredient: Ingredient, publishChanges = true) {
-    const index = this.ingredients.findIndex(ing => ing.name === ingredient.name);
+    const index = this.ingredients.findIndex(ing => ing.name.toLowerCase() === ingredient.name.toLowerCase());
     if (index === -1) {
       this.ingredients.push(ingredient);
     } else {
@@ -42,16 +42,13 @@ export class ShoppingListService {
     this.ingredientsChanged$.next(this.ingredients.slice());
   }
 
-  deleteIngredient(ingredientName: string) {
-    const ingredient = this.ingredients.find(ing => ing.name === ingredientName);
-    if (!ingredient) {
-      return;
-    }
-    if (ingredient.amount > 1) {
-      ingredient.amount -= 1;
-    } else {
-      this.ingredients = this.ingredients.filter(ing => ing.name !== ingredientName);
-    }
+  updateIngredient(index: number, newIngredient: Ingredient) {
+    this.ingredients[index] = newIngredient;
+    this.ingredientsChanged$.next(this.ingredients.slice());
+  }
+
+  deleteIngredient(index: number) {
+    this.ingredients.splice(index, 1);
     this.ingredientsChanged$.next(this.ingredients.slice());
   }
 }

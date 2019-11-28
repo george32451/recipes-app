@@ -36,19 +36,27 @@ export class ShoppingListEditComponent implements AfterViewInit, OnDestroy, OnIn
     setTimeout(() => this.addIngredientForm.setValue({ ingredientAmount: 1, ingredientName: '' }));
   }
 
-  onAddIngredient(): void {
+  onSubmit(): void {
     const ingredient: Ingredient = new Ingredient(
       this.addIngredientForm.value.ingredientName,
       +this.addIngredientForm.value.ingredientAmount
     );
-    this.shoppingListService.addIngredient(ingredient);
+
+    if (this.editMode) {
+      this.shoppingListService.updateIngredient(this.editedItemIndex, ingredient);
+    } else {
+      this.shoppingListService.addIngredient(ingredient);
+    }
+    this.onResetForm();
   }
 
   onDeleteIngredient(): void {
-    this.shoppingListService.deleteIngredient(this.addIngredientForm.value.ingredientName);
+    this.shoppingListService.deleteIngredient(this.editedItemIndex);
+    this.onResetForm();
   }
 
   onResetForm(): void {
+    this.editMode = false;
     this.addIngredientForm.reset({ ingredientAmount: 1 });
   }
 
