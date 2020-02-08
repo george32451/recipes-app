@@ -4,13 +4,14 @@
       <button type="button" class="navbar-toggle" (click)="onNavbarToggle()">
         <span *ngFor="let iconBar of [1, 2, 3]" class="icon-bar"></span>
       </button>
-      <a [routerLink]="['/recipes']" class="navbar-brand">Recipe Book</a>
+      <a routerLink="/recipes" class="navbar-brand">Recipe Book</a>
     </div>
 
     <div class="navbar-collapse" [class.collapse]="collapsed" (window:resize)="collapsed = true">
       <ul class="nav navbar-nav">
-        <li routerLinkActive="active"><a [routerLink]="['/recipes']">Recipes</a></li>
-        <li routerLinkActive="active"><a [routerLink]="['/shopping-list']">Shopping List</a></li>
+        <li routerLinkActive="active"><a routerLink="/recipes">Recipes</a></li>
+        <li routerLinkActive="active"><a routerLink="/auth">Authenticate</a></li>
+        <li routerLinkActive="active"><a routerLink="/shopping-list">Shopping List</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li class="dropdown" appDropdown>
@@ -19,8 +20,8 @@
             <span class="caret"></span>
           </a>
           <ul class="dropdown-menu">
-            <li><a style="cursor: pointer;">Save Data</a></li>
-            <li><a style="cursor: pointer;">Fetch Data</a></li>
+            <li><a style="cursor: pointer;" (click)="onSave()">Save Data</a></li>
+            <li><a style="cursor: pointer;" (click)="onFetch()">Fetch Data</a></li>
           </ul>
         </li>
       </ul>

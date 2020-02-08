@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 
 import { Recipe } from 'app/common/models/recipe.model';
 import { Ingredient } from 'app/common/models/ingredient.model';
@@ -12,36 +14,20 @@ import { ShoppingListService } from 'app/shopping-list/shopping-list.service';
 export class RecipeService {
   recipesChanged$ = new Subject<Recipe[]>();
 
-  private recipes: Recipe[] = [
-    new Recipe(
-      'First Test Recipe',
-      'Simple description',
-      'https://cdn.pixabay.com/photo/2016/06/15/19/09/food-1459693_960_720.jpg',
-      [
-        new Ingredient('Meat', 1),
-        new Ingredient('Potato', 5),
-      ]
-    ),
-    new Recipe(
-      'Second Test Recipe',
-      'Simple description',
-      'https://cdn.pixabay.com/photo/2018/12/22/16/36/recipe-3889916_960_720.jpg',
-      [
-        new Ingredient('Meat', 1),
-        new Ingredient('Lime', 1),
-      ]
-    )
-  ];
+  private _recipes: Recipe[] = [];
 
-  constructor(private shoppingListService: ShoppingListService) {
+  constructor(
+    private shoppingListService: ShoppingListService,
+    private http: HttpClient
+  ) {
   }
 
-  get getRecipes(): Recipe[] {
-    return this.recipes.slice();
+  get recipes(): Recipe[] {
+    return this._recipes.slice();
   }
 
   getRecipeById(index: number): Recipe {
-    return this.recipes[index];
+    return this._recipes[index];
   }
 
   addIngredientsToShoppingList(ingredients: Ingredient[]) {
@@ -49,17 +35,35 @@ export class RecipeService {
   }
 
   addRecipe(recipe: Recipe) {
-    this.recipes.push(recipe);
-    this.recipesChanged$.next(this.recipes.slice());
+    this._recipes.push(recipe);
+    this.recipesChanged$.next(this._recipes.slice());
   }
 
   updateRecipe(index: number, newRecipe: Recipe) {
-    this.recipes[index] = newRecipe;
-    this.recipesChanged$.next(this.recipes.slice());
+    this._recipes[index] = newRecipe;
+    this.recipesChanged$.next(this._recipes.slice());
   }
 
   deleteRecipe(index: number) {
-    this.recipes.splice(index, 1);
-    this.recipesChanged$.next(this.recipes.slice());
+    this._recipes.splice(index, 1);
+    this.recipesChanged$.next(this._recipes.slice());
+  }
+
+  storeRecipes(): void {
+    this.http.put<Recipe[]>('https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json', this.recipes).subscribe(console.log);
+  }
+
+  fetchRecipes(): Observable<Recipe[]> {
+    return this.http.get<Recipe[]>('https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json', {params: new HttpParams().set('print', 'pretty')})
+      .pipe(
+        map(recipes => {
+          return recipes.map(recipe => ({...recipe, ingredients: recipe.ingredients ? recipe.ingredients : []}));
+        }),
+        tap(recipes => {
+          console.log(recipes);
+          this._recipes = recipes;
+          this.recipesChanged$.next(this._recipes.slice());
+        })
+      );
   }
 }
