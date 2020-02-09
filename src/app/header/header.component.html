@@ -7,14 +7,18 @@
       <a routerLink="/recipes" class="navbar-brand">Recipe Book</a>
     </div>
 
-    <div class="navbar-collapse" [class.collapse]="collapsed" (window:resize)="collapsed = true">
+    <div *ngIf="{ isAuth: isAuthenticated$ | async } as userAuth" class="navbar-collapse" [class.collapse]="collapsed"
+         (window:resize)="collapsed = true">
       <ul class="nav navbar-nav">
-        <li routerLinkActive="active"><a routerLink="/recipes">Recipes</a></li>
-        <li routerLinkActive="active"><a routerLink="/auth">Authenticate</a></li>
+        <li *ngIf="userAuth.isAuth" routerLinkActive="active"><a routerLink="/recipes">Recipes</a></li>
+        <li *ngIf="!userAuth.isAuth" routerLinkActive="active"><a routerLink="/auth">Authenticate</a></li>
         <li routerLinkActive="active"><a routerLink="/shopping-list">Shopping List</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li class="dropdown" appDropdown>
+        <li *ngIf="userAuth.isAuth">
+          <a style="cursor: pointer;" (click)="onLogout()">Logout</a>
+        </li>
+        <li *ngIf="userAuth.isAuth" class="dropdown" appDropdown>
           <a style="cursor: pointer;" class="dropdown-toggle" role="button">
             Manage
             <span class="caret"></span>

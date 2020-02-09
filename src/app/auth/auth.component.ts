@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { NgForm } from '@angular/forms';
+import { Router } from '@angular/router';
 
-import { AuthService } from './auth.service';
 import { finalize } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+
+import { AuthService } from './auth.service';
 import { AuthResponseData } from './auth-response-data.interface';
 
 @Component({
@@ -16,7 +18,7 @@ export class AuthComponent {
   isLoading = false;
   errorMessage: string = null;
 
-  constructor(private authService: AuthService) {
+  constructor(private authService: AuthService, private router: Router) {
   }
 
   onSwitchMode() {
@@ -39,12 +41,9 @@ export class AuthComponent {
 
     auth$.pipe(finalize(() => this.isLoading = false))
       .subscribe(
-        response => {
-          console.log(response);
-        },
-        (errorMessage: string) => {
-          this.errorMessage = errorMessage;
-        });
+        () => this.router.navigate(['/recipes']),
+        (errorMessage: string) => this.errorMessage = errorMessage
+      );
 
     form.reset();
   }

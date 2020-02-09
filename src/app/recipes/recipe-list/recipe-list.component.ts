@@ -24,7 +24,12 @@ export class RecipeListComponent implements OnDestroy, OnInit {
     this.recipeService.recipesChanged$
       .pipe(takeUntil(this.onDestroy$))
       .subscribe((recipes: Recipe[]) => this.recipes = recipes);
-    this.recipes = this.recipeService.recipes;
+
+    if (this.recipeService.recipes.length) {
+      this.recipes = this.recipeService.recipes;
+    } else {
+      this.recipeService.fetchRecipes().subscribe();
+    }
   }
 
   onCreateRecipe() {

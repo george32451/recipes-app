@@ -50,20 +50,21 @@ export class RecipeService {
   }
 
   storeRecipes(): void {
-    this.http.put<Recipe[]>('https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json', this.recipes).subscribe(console.log);
+    this.http.put<Recipe[]>('https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json', this.recipes).subscribe();
   }
 
   fetchRecipes(): Observable<Recipe[]> {
-    return this.http.get<Recipe[]>('https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json', {params: new HttpParams().set('print', 'pretty')})
-      .pipe(
-        map(recipes => {
-          return recipes.map(recipe => ({...recipe, ingredients: recipe.ingredients ? recipe.ingredients : []}));
-        }),
-        tap(recipes => {
-          console.log(recipes);
-          this._recipes = recipes;
-          this.recipesChanged$.next(this._recipes.slice());
-        })
-      );
+    return this.http.get<Recipe[]>(
+      'https://ng-recipe-book-5e3a9.firebaseio.com/recipes.json',
+      {params: new HttpParams().set('print', 'pretty')}
+    ).pipe(
+      map(recipes => {
+        return recipes.map(recipe => ({...recipe, ingredients: recipe.ingredients ? recipe.ingredients : []}));
+      }),
+      tap(recipes => {
+        this._recipes = recipes;
+        this.recipesChanged$.next(this._recipes.slice());
+      })
+    );
   }
 }
