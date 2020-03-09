@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, ComponentFactoryResolver, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { finalize } from 'rxjs/operators';
+import { finalize, take } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import { AuthResponseData } from './auth-response-data.interface';
+import { AlertComponent } from '../common/alert/alert.component';
+import { AlertPlaceholderDirective } from '../common/directives/alert-placeholder.directive';
 
 @Component({
   selector: 'app-auth',
@@ -14,11 +16,16 @@ import { AuthResponseData } from './auth-response-data.interface';
   styleUrls: ['./auth.component.css']
 })
 export class AuthComponent {
+  @ViewChild(AlertPlaceholderDirective) alertHost: AlertPlaceholderDirective;
+
   isLoginMode = true;
   isLoading = false;
-  errorMessage: string = null;
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private componentFactoryResolver: ComponentFactoryResolver
+  ) {
   }
 
   onSwitchMode() {
@@ -42,9 +49,22 @@ export class AuthComponent {
     auth$.pipe(finalize(() => this.isLoading = false))
       .subscribe(
         () => this.router.navigate(['/recipes']),
-        (errorMessage: string) => this.errorMessage = errorMessage
+        (errorMessage: string) => this.showErrorAlert(errorMessage)
       );
 
     form.reset();
+  }
+
+  private showErrorAlert(message: string) {
+    const alertComponentFactory = this.componentFactoryResolver.resolveComponentFactory<AlertComponent>(AlertComponent);
+    const hostViewContainerRef = this.alertHost.viewContainerRef;
+
+    hostViewContainerRef.clear();
+    const componentRef = hostViewContainerRef.createComponent<AlertComponent>(alertComponentFactory);
+
+    componentRef.instance.message = message;
+    componentRef.instance.closeEvent.pipe(take(1)).subscribe(() => {
+      hostViewContainerRef.clear();
+    });
   }
 }
