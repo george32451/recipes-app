@@ -7,8 +7,8 @@ import { Observable } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import { AuthResponseData } from './auth-response-data.interface';
-import { AlertComponent } from '../common/alert/alert.component';
-import { AlertPlaceholderDirective } from '../common/directives/alert-placeholder.directive';
+import { AlertComponent } from '../shared/alert/alert.component';
+import { AlertPlaceholderDirective } from '../shared/directives/alert-placeholder.directive';
 
 @Component({
   selector: 'app-auth',
