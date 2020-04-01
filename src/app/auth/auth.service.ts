@@ -1,82 +1,65 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
 
-import { AuthResponseData } from './auth-response-data.interface';
 import { User } from './user.model';
-import { environment } from '../../environments/environment';
+import * as fromApp from '../store/app.reducer';
+import * as fromAuth from './store/auth.reducer';
+import * as AuthActions from './store/auth.actions';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  user = new BehaviorSubject<User>(null);
   private tokenExpirationTimer: number = null;
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(
+    private http: HttpClient, private router: Router,
+    private store: Store<fromApp.AppState>
+  ) { }
+
+  get user(): Observable<User> {
+    return this.store.select('auth').pipe(map(state => state.user));
   }
 
-  signup(email: string, password: string): Observable<AuthResponseData> {
-    return this.http.post<AuthResponseData>(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${environment.firebaseAPIKey}`,
-      {
-        email,
-        password,
-        returnSecureToken: true
-      }
-    ).pipe(
-      catchError(this.handleError),
-      tap(response => this.handleAuthentication(response.email, response.localId, response.idToken, +response.expiresIn))
-    );
+  get authState(): Observable<fromAuth.State> {
+    return this.store.select('auth');
   }
 
-  signin(email: string, password: string): Observable<AuthResponseData> {
-    return this.http.post<AuthResponseData>(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${environment.firebaseAPIKey}`,
-      {
-        email,
-        password,
-        returnSecureToken: true
-      }
-    ).pipe(
-      catchError(this.handleError),
-      tap(response => this.handleAuthentication(response.email, response.localId, response.idToken, +response.expiresIn))
-    );
+  signup(email: string, password: string): void {
+    this.store.dispatch(new AuthActions.SignupStart({ email, password }));
+  }
+
+  signin(email: string, password: string): void {
+    this.store.dispatch(new AuthActions.LoginStart({ email, password }));
   }
 
   autoLogin(): void {
-    const userData: {
-      email: string,
-      id: string,
-      _token: string,
-      _tokenExpirationDate: string
-    } = JSON.parse(localStorage.getItem('userData'));
+    const userData: { email: string; id: string; _token: string; _tokenExpirationDate: string }
+      = JSON.parse(localStorage.getItem('userData'));
 
     if (!userData) {
       return;
     }
 
-    const restoredUser = new User(
-      userData.email,
-      userData.id,
-      userData._token,
-      new Date(userData._tokenExpirationDate)
-    );
-
-    if (restoredUser.token) {
-      this.user.next(restoredUser);
+    if (userData._token) {
+      this.store.dispatch(new AuthActions.AuthSuccess({
+        email: userData.email,
+        userId: userData.id,
+        token: userData._token,
+        expirationDate: new Date(userData._tokenExpirationDate)
+      }));
       const expirationTime = new Date(userData._tokenExpirationDate).getTime() - new Date().getTime();
       this.autoLogout(expirationTime);
     }
   }
 
   logout(): void {
-    this.user.next(null);
-    this.router.navigate(['/auth']);
-    localStorage.removeItem('userData');
+    this.store.dispatch(new AuthActions.Logout());
     if (this.tokenExpirationTimer) {
       clearTimeout(this.tokenExpirationTimer);
     }
@@ -87,34 +70,4 @@ export class AuthService {
     this.tokenExpirationTimer = setTimeout(() => this.logout(), expirationDuration);
   }
 
-  private handleAuthentication(email: string, userId: string, token: string, expiration: number): void {
-    const expirationDate = new Date(new Date().getTime() + expiration * 1000);
-    const user = new User(email, userId, token, expirationDate);
-    this.user.next(user);
-    this.autoLogout(expiration * 1000);
-    localStorage.setItem('userData', JSON.stringify(user));
-  }
-
-  private handleError(errorResponse: HttpErrorResponse): Observable<never> {
-    let errorMessage = 'An unknown error occurred!';
-
-    if (!errorResponse.error || !errorResponse.error.error) {
-      return throwError(errorMessage);
-    }
-
-    switch (errorResponse.error.error.message) {
-      case 'EMAIL_NOT_FOUND':
-      case 'INVALID_PASSWORD':
-        errorMessage = 'Email or password incorrect!';
-        break;
-      case 'USER_DISABLED':
-        errorMessage = 'This user is blocked!';
-        break;
-      case 'EMAIL_EXISTS':
-        errorMessage = 'This email already exists!';
-        break;
-    }
-
-    return throwError(errorMessage);
-  }
 }
