@@ -1,54 +1,52 @@
 import { Injectable } from '@angular/core';
 
-import { Subject } from 'rxjs';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
 
 import { Ingredient } from 'app/common/models/ingredient.model';
+import * as ShoppingListActions from './store/shopping-list.actions';
+import * as fromShoppingList from './store/shopping-list.reducer';
+import * as fromApp from '../store/app.reducer';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ShoppingListService {
-  ingredientsChanged$ = new Subject<Ingredient[]>();
-  startedEditing$ = new Subject<number>();
-  private ingredients: Ingredient[] = [
-    new Ingredient('Apple', 5),
-    new Ingredient('Tomato', 10)
-  ];
 
-  constructor() { }
+  constructor(private store: Store<fromApp.AppState>) { }
 
-  get getIngredients(): Ingredient[] {
-    return this.ingredients.slice();
+  get ingredients$(): Observable<Ingredient[]> {
+    return this.store.select('shoppingList').pipe(
+      map(shoppingList => shoppingList.ingredients)
+    );
   }
 
-  getIngredient(index): Ingredient {
-    return this.ingredients[index];
+  get shoppingListState$(): Observable<fromShoppingList.State> {
+    return this.store.select('shoppingList');
   }
 
-  addIngredient(ingredient: Ingredient, publishChanges = true) {
-    const index = this.ingredients.findIndex(ing => ing.name.toLowerCase() === ingredient.name.toLowerCase());
-    if (index === -1) {
-      this.ingredients.push(ingredient);
-    } else {
-      this.ingredients[index].amount += ingredient.amount;
-    }
-    if (publishChanges) {
-      this.ingredientsChanged$.next(this.ingredients.slice());
-    }
+  addIngredient(ingredient: Ingredient): void {
+    this.store.dispatch(new ShoppingListActions.AddIngredient(ingredient));
   }
 
-  addIngredients(ingredients: Ingredient[]) {
-    ingredients.forEach(ing => this.addIngredient(ing, false));
-    this.ingredientsChanged$.next(this.ingredients.slice());
+  addIngredients(ingredients: Ingredient[]): void {
+    this.store.dispatch(new ShoppingListActions.AddIngredients(ingredients));
   }
 
-  updateIngredient(index: number, newIngredient: Ingredient) {
-    this.ingredients[index] = newIngredient;
-    this.ingredientsChanged$.next(this.ingredients.slice());
+  updateIngredient(ingredient: Ingredient): void {
+    this.store.dispatch(new ShoppingListActions.UpdateIngredient(ingredient));
   }
 
-  deleteIngredient(index: number) {
-    this.ingredients.splice(index, 1);
-    this.ingredientsChanged$.next(this.ingredients.slice());
+  deleteIngredient(): void {
+    this.store.dispatch(new ShoppingListActions.DeleteIngredient());
+  }
+
+  startEdit(index: number): void {
+    this.store.dispatch(new ShoppingListActions.StartEdit(index));
+  }
+
+  stopEdit(): void {
+    this.store.dispatch(new ShoppingListActions.StopEdit());
   }
 }

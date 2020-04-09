@@ -1,8 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
 
 import { Recipe } from 'app/common/models/recipe.model';
 import { RecipeService } from '../recipe.service';
@@ -13,7 +12,7 @@ import { RecipeService } from '../recipe.service';
   styleUrls: ['./recipe-list.component.css']
 })
 export class RecipeListComponent implements OnDestroy, OnInit {
-  recipes: Recipe[];
+  recipes$: Observable<Recipe[]>;
   private onDestroy$: Subject<void> = new Subject<void>();
 
   constructor(private recipeService: RecipeService,
@@ -21,15 +20,8 @@ export class RecipeListComponent implements OnDestroy, OnInit {
               private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.recipeService.recipesChanged$
-      .pipe(takeUntil(this.onDestroy$))
-      .subscribe((recipes: Recipe[]) => this.recipes = recipes);
-
-    if (this.recipeService.recipes.length) {
-      this.recipes = this.recipeService.recipes;
-    } else {
-      this.recipeService.fetchRecipes().subscribe();
-    }
+    this.recipeService.fetchRecipes();
+    this.recipes$ = this.recipeService.recipes;
   }
 
   onCreateRecipe() {

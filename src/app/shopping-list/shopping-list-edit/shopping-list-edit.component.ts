@@ -2,6 +2,7 @@ import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular
 import { NgForm } from '@angular/forms';
 
 import { Subscription } from 'rxjs';
+import { filter, tap } from 'rxjs/operators';
 
 import { Ingredient } from 'app/common/models/ingredient.model';
 import { ShoppingListService } from '../shopping-list.service';
@@ -14,21 +15,21 @@ import { ShoppingListService } from '../shopping-list.service';
 export class ShoppingListEditComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('addIngredientForm') addIngredientForm: NgForm;
   editIngredientSub: Subscription;
-  editedItemIndex: number;
-  editedItem: Ingredient;
   editMode = false;
 
   constructor(private shoppingListService: ShoppingListService) { }
 
   ngOnInit(): void {
-    this.editIngredientSub = this.shoppingListService.startedEditing$.subscribe((index: number) => {
-      this.editMode = true;
-      this.editedItemIndex = index;
-      this.editedItem = this.shoppingListService.getIngredient(index);
-      this.addIngredientForm.setValue({
-        ingredientName: this.editedItem.name,
-        ingredientAmount: this.editedItem.amount,
-      });
+    this.editIngredientSub = this.shoppingListService.shoppingListState$
+      .pipe(
+        tap(state => this.editMode = state.editedIngredientIndex > -1),
+        filter(state => !!state.editedIngredient)
+      )
+      .subscribe(state => {
+        this.addIngredientForm.setValue({
+          ingredientName: state.editedIngredient.name,
+          ingredientAmount: state.editedIngredient.amount,
+        });
     });
   }
 
@@ -43,7 +44,7 @@ export class ShoppingListEditComponent implements AfterViewInit, OnDestroy, OnIn
     );
 
     if (this.editMode) {
-      this.shoppingListService.updateIngredient(this.editedItemIndex, ingredient);
+      this.shoppingListService.updateIngredient(ingredient);
     } else {
       this.shoppingListService.addIngredient(ingredient);
     }
@@ -51,19 +52,21 @@ export class ShoppingListEditComponent implements AfterViewInit, OnDestroy, OnIn
   }
 
   onDeleteIngredient(): void {
-    this.shoppingListService.deleteIngredient(this.editedItemIndex);
+    this.shoppingListService.deleteIngredient();
     this.onResetForm();
   }
 
   onResetForm(): void {
     this.editMode = false;
     this.addIngredientForm.reset({ ingredientAmount: 1 });
+    this.shoppingListService.stopEdit();
   }
 
   ngOnDestroy(): void {
     if (this.editIngredientSub) {
       this.editIngredientSub.unsubscribe();
     }
+    this.onResetForm();
   }
 
 }
