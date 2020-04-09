@@ -31,7 +31,7 @@ export class HeaderComponent implements OnInit {
   }
 
   onFetch() {
-    this.recipeService.fetchRecipes().subscribe();
+    this.recipeService.fetchRecipes();
   }
 
   onLogout() {

@@ -7,7 +7,7 @@
 <div class="row">
   <div class="col-xs-12">
     <app-recipe-list-item
-      *ngFor="let recipeEl of recipes; let index=index"
+      *ngFor="let recipeEl of (recipes$ | async); let index=index"
       [recipe]="recipeEl"
       [id]="index">
     </app-recipe-list-item>

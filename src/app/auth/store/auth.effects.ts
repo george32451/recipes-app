@@ -10,6 +10,7 @@ import * as AuthActions from './auth.actions';
 import { AuthResponseData } from '../auth-response-data.interface';
 import { environment } from '../../../environments/environment';
 import { User } from '../user.model';
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class AuthEffects {
@@ -63,10 +64,42 @@ export class AuthEffects {
     })
   );
 
+  @Effect()
+  autoLogin = this.actions$.pipe(
+    ofType(AuthActions.AUTO_LOGIN),
+    map(() => {
+      const userData: { email: string; id: string; _token: string; _tokenExpirationDate: string }
+        = JSON.parse(localStorage.getItem('userData'));
+
+      if (!userData) {
+        return { type: 'NOOP' };
+      }
+
+      if (userData._token) {
+        const expirationTime = new Date(userData._tokenExpirationDate).getTime() - new Date().getTime();
+        this.authService.setLogoutTimer(expirationTime);
+
+        return new AuthActions.AuthSuccess({
+          email: userData.email,
+          userId: userData.id,
+          token: userData._token,
+          expirationDate: new Date(userData._tokenExpirationDate),
+          redirect: false
+        });
+      }
+
+      return { type: 'NOOP' };
+    })
+  );
+
   @Effect({ dispatch: false })
   authSuccess = this.actions$.pipe(
     ofType(AuthActions.AUTH_SUCCESS),
-    tap(() => this.router.navigate(['/']))
+    tap((authSuccessAction: AuthActions.AuthSuccess) => {
+      if (authSuccessAction.payload.redirect) {
+        this.router.navigate(['/']);
+      }
+    })
   );
 
   @Effect({ dispatch: false })
@@ -78,13 +111,21 @@ export class AuthEffects {
     })
   );
 
-  constructor(private actions$: Actions, private http: HttpClient, private router: Router) { }
+  constructor(
+    private actions$: Actions,
+    private http: HttpClient,
+    private router: Router,
+    private authService: AuthService
+  ) { }
 
   private handleAuthentication(email: string, userId: string, token: string, expiration: number): AuthActions.AuthActions {
     const expirationDate = new Date(new Date().getTime() + expiration * 1000);
     const user = new User(email, userId, token, expirationDate);
+
     localStorage.setItem('userData', JSON.stringify(user));
-    return new AuthActions.AuthSuccess({ email, userId, token, expirationDate });
+    this.authService.setLogoutTimer(expiration * 1000);
+
+    return new AuthActions.AuthSuccess({ email, userId, token, expirationDate, redirect: true });
   }
 
   private handleError(error: HttpErrorResponse): Observable<AuthActions.AuthFail> {

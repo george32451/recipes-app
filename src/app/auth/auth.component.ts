@@ -25,8 +25,7 @@ export class AuthComponent implements OnDestroy, OnInit {
     private authService: AuthService,
     private router: Router,
     private componentFactoryResolver: ComponentFactoryResolver
-  ) {
-  }
+  ) { }
 
   ngOnInit(): void {
     this.authService.authState.pipe(takeUntil(this.destroy$)).subscribe(authState => {
