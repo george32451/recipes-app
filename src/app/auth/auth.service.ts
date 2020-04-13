@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, Subject, timer } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 
 import { User } from './user.model';
@@ -15,7 +15,8 @@ import * as AuthActions from './store/auth.actions';
   providedIn: 'root'
 })
 export class AuthService {
-  private tokenExpirationTimer: number = null;
+  private tokenExpirationTimer = false;
+  private destroyTimer$: Subject<void> = new Subject<void>();
 
   constructor(
     private http: HttpClient, private router: Router,
@@ -23,7 +24,7 @@ export class AuthService {
   ) { }
 
   get user(): Observable<User> {
-    return this.store.select('auth').pipe(map(state => state.user));
+    return this.store.select('auth', 'user');
   }
 
   get authState(): Observable<fromAuth.State> {
@@ -45,13 +46,17 @@ export class AuthService {
   logout(): void {
     this.store.dispatch(new AuthActions.Logout());
     if (this.tokenExpirationTimer) {
-      clearTimeout(this.tokenExpirationTimer);
+      this.destroyTimer$.next();
+      this.destroyTimer$.complete();
     }
-    this.tokenExpirationTimer = null;
+    this.tokenExpirationTimer = false;
   }
 
   setLogoutTimer(expirationDuration: number): void {
-    this.tokenExpirationTimer = setTimeout(() => this.logout(), expirationDuration);
+    this.tokenExpirationTimer = true;
+    timer(expirationDuration)
+      .pipe(takeUntil(this.destroyTimer$))
+      .subscribe(() => this.logout(), () => {}, () => this.tokenExpirationTimer = false);
   }
 
 }
